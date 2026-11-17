@@ -1,0 +1,17 @@
+# Local build overrides (git-ignored).
+# Build up to 8 packages in parallel; under QEMU each package build is
+# mostly single-threaded, so package-level parallelism helps the most.
+SONIC_CONFIG_BUILD_JOBS = 8
+PLATFORM = marvell-prestera
+PLATFORM_ARCH = arm64
+DEFAULT_CONTAINER_REGISTRY = publicmirror.azurecr.io
+SONIC_VERSION_CONTROL_COMPONENTS = py2,py3,web,git,docker
+MIRROR_SNAPSHOT = y
+SONIC_BUILD_JOBS = 8
+INCLUDE_ICCPD = y
+INCLUDE_NAT = y
+ENABLE_SYNCD_RPC = y
+ENABLE_ZTP = y
+# Skip package unit tests: several (iptables, libnl3) need kernel netlink
+# features that QEMU user-mode emulation does not provide.
+BUILD_SKIP_TEST = y
