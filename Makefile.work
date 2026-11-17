@@ -315,8 +315,12 @@ DOCKER_RUN := docker run --rm=true --privileged --init \
     $(SONIC_BUILDER_EXTRA_CMDLINE)
 
 # Mount the $(DOCKER_ROOT) to /var/lib/docker in the slave container, the overlay fs is not supported as dockerd root folder.
+# Skipped in multiarch/cross mode: /var/lib/docker is mounted from $(DOCKER_DATA_ROOT_FOR_MULTIARCH)
+# below, and newer docker rejects duplicate mount points.
 ifneq ($(filter $(SONIC_SLAVE_DOCKER_DRIVER),overlay overlay2),)
+ifeq ($(filter y, $(MULTIARCH_QEMU_ENVIRON) $(CROSS_BUILD_ENVIRON)),)
 	DOCKER_RUN += -v $(DOCKER_ROOT):/var/lib/docker
+endif
 endif
 
 ifneq ($(DOCKER_BUILDER_USER_MOUNT),)
@@ -409,7 +413,11 @@ endif
     #Override Native config to prevent docker service
     SONIC_CONFIG_USE_NATIVE_DOCKERD_FOR_BUILD=y
 
-    DOCKER_MULTIARCH_CHECK := docker run --rm --privileged multiarch/qemu-user-static --reset -p yes --credential yes
+    # multiarch/qemu-user-static is unmaintained (QEMU 7.2.0) and makes gcc 12 cc1plus
+    # segfault randomly under user-mode emulation. Use tonistiigi/binfmt (newer QEMU) instead.
+    BINFMT_IMAGE ?= tonistiigi/binfmt:qemu-v10.2.3-68
+    DOCKER_MULTIARCH_CHECK := docker run --rm --privileged $(BINFMT_IMAGE) --uninstall 'qemu-*' >/dev/null && \
+        docker run --rm --privileged $(BINFMT_IMAGE) --install all
 
     DOCKER_SERVICE_SAFE_KILLER :=  (MARCH_PID=`ps -eo pid,cmd | grep "[0-9] dockerd.*march" | awk '{print $$1}'`; echo "Killing march docker $$MARCH_PID"; [ -z "$$MARCH_PID" ] || sudo kill -9 "$$MARCH_PID";)
     DOCKER_SERVICE_MULTIARCH_CHECK := ($(DOCKER_SERVICE_SAFE_KILLER); sudo rm -fr /var/run/march/; (echo "Starting docker march service..."; sudo $(SONIC_NATIVE_DOCKERD_FOR_MULTIARCH) &) &>/dev/null ; sleep 2; sudo $(SONIC_USERFACL_DOCKERD_FOR_MULTIARCH);)
@@ -589,6 +597,7 @@ SONIC_BUILD_INSTRUCTION :=  $(MAKE) \
                            SONIC_OS_VERSION=$(SONIC_OS_VERSION) \
                            PIP_HTTP_TIMEOUT=$(PIP_HTTP_TIMEOUT) \
                            BUILD_PROCESS_TIMEOUT=$(BUILD_PROCESS_TIMEOUT) \
+                           BUILD_SKIP_TEST=$(BUILD_SKIP_TEST) \
                            SONIC_PTF_ENV_PY_VER=$(SONIC_PTF_ENV_PY_VER) \
 						   ENABLE_MULTIDB=$(ENABLE_MULTIDB) \
                            $(SONIC_OVERRIDE_BUILD_VARS)

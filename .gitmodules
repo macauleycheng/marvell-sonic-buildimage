@@ -156,8 +156,8 @@
 	branch=202511
 [submodule "platform/marvell-prestera/sonic-platform-marvell"]
 	path = platform/marvell-prestera/sonic-platform-marvell
-	url = https://github.com/Marvell-switching/sonic-platform-arm64.git
-	branch=202511
+	url = https://github.com/macauleycheng/sonic-platform-arm64.git
+	branch = ecs5550-30x
 [submodule "src/sonic-sysmgr/gnoi"]
 	path = src/sonic-sysmgr/gnoi
 	url = https://github.com/openconfig/gnoi

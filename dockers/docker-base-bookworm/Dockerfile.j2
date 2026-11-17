@@ -1,14 +1,25 @@
 {% set prefix = DEFAULT_CONTAINER_REGISTRY %}
 {% from "dockers/dockerfile-macros.j2" import install_debian_packages, install_python_wheels, copy_files %}
 {% if CONFIGURED_ARCH == "armhf" and (MULTIARCH_QEMU_ENVIRON == "y" or CROSS_BUILD_ENVIRON == "y") %}
-ARG BASE=--platform=linux/arm/v7 {{ prefix }}debian:bookworm
+{% set base_platform = "linux/arm/v7" %}
+ARG BASE={{ prefix }}debian:bookworm
 {% elif CONFIGURED_ARCH == "arm64" and (MULTIARCH_QEMU_ENVIRON == "y" or CROSS_BUILD_ENVIRON == "y") %}
-ARG BASE=--platform=linux/arm64 {{ prefix }}debian:bookworm
+{% set base_platform = "linux/arm64" %}
+ARG BASE={{ prefix }}debian:bookworm
 {% else %}
+{% set base_platform = "" %}
 ARG BASE={{ prefix }}{{DOCKER_BASE_ARCH}}/debian:bookworm
 {% endif %}
 
+# --platform must be on the FROM line, not inside $BASE: BuildKit rejects
+# "FROM --platform=... image" coming from a build-arg ("invalid reference
+# format"). Keeping BASE a plain image ref also lets docker_version_control.sh
+# pin it (it reads the value after "ARG BASE=").
+{% if base_platform %}
+FROM --platform={{ base_platform }} $BASE AS base
+{% else %}
 FROM $BASE AS base
+{% endif %}
 
 # Make apt-get non-interactive
 ENV DEBIAN_FRONTEND=noninteractive

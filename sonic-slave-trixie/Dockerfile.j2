@@ -5,7 +5,9 @@ FROM --platform=linux/arm/v7 {{ prefix }}debian:trixie
 COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin
 {%- elif CONFIGURED_ARCH == "arm64" and MULTIARCH_QEMU_ENVIRON == "y" %}
 FROM {{ prefix }}multiarch/qemu-user-static:x86_64-aarch64-7.2.0-1 as qemu
-FROM --platform=linux/arm64 {{ prefix }}debian:trixie
+# Pin to the digest in files/build/versions/default/versions-docker so the base
+# image matches MIRROR_SNAPSHOT (docker_version_control.sh only pins the first FROM).
+FROM --platform=linux/arm64 {{ prefix }}debian:trixie@sha256:4ae67669760b807c19f23902a3fd7c121a6a70cf2ae709035674b23e712e4d62
 COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin
 {%- elif CONFIGURED_ARCH == "armhf" and CROSS_BUILD_ENVIRON == "y" %}
 FROM {{ prefix }}multiarch/qemu-user-static:x86_64-arm-7.2.0-1 as qemu
@@ -13,7 +15,9 @@ FROM {{ prefix }}debian:trixie
 COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin
 {%- elif CONFIGURED_ARCH == "arm64" and CROSS_BUILD_ENVIRON == "y" %}
 FROM {{ prefix }}multiarch/qemu-user-static:x86_64-aarch64-7.2.0-1 as qemu
-FROM {{ prefix }}debian:trixie
+# Pin to the digest in files/build/versions/default/versions-docker so the base
+# image matches MIRROR_SNAPSHOT (docker_version_control.sh only pins the first FROM).
+FROM {{ prefix }}debian:trixie@sha256:4ae67669760b807c19f23902a3fd7c121a6a70cf2ae709035674b23e712e4d62
 COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin
 {%- else -%}
 FROM {{ prefix }}debian:trixie
@@ -43,9 +47,10 @@ RUN eatmydata apt-get install -y crossbuild-essential-$arch
 RUN eatmydata apt-get install -y gcc-$gcc_arch
 
 RUN apt-mark hold g++-$gcc_arch
-RUN apt-mark hold g++-10-$gcc_arch
+# trixie cross toolchain is gcc/g++-14 (was g++-10/gcc-10 from bullseye)
+RUN apt-mark hold g++-14-$gcc_arch
 RUN apt-mark hold gcc-$gcc_arch
-RUN apt-mark hold gcc-10-$gcc_arch
+RUN apt-mark hold gcc-14-$gcc_arch
 
 ARG CROSS_CC=${gcc_arch}-gcc
 ARG CROSS_CXX=${gcc_arch}-g++

@@ -45,6 +45,22 @@
             };
         };
 
+        /* Accton ECS5550-30X (CN9130 + Aldrin2): addresses match the vendor
+         * image so the same U-Boot env (fit_addr=0x10000000) boots both. */
+        kernel_aldrin2 {
+            description = "Linux Kernel - Aldrin2/ECS5550";
+            data = /incbin/("/boot/vmlinuz-6.12.41+deb13-sonic-arm64");
+            type = "kernel";
+            arch = "arm64";
+            os = "linux";
+            compression = "none";
+            load = <0x5480000>;
+            entry = <0x5480000>;
+            hash@1 {
+                algo = "sha1";
+            };
+        };
+
         ramdisk_ac5x {
             description = "ramdisk for AC5x";
             data = /incbin/("/boot/initrd.img-6.12.41+deb13-sonic-arm64");
@@ -80,6 +96,18 @@
             compression = "none";
             load = <0x18000000>;
             entry = <0x18000000>;
+            hash@1 {
+                algo = "sha1";
+            };
+        };
+        /* No load address: U-Boot uses the ramdisk in place inside the FIT */
+        ramdisk_aldrin2 {
+            description = "ramdisk - Aldrin2/ECS5550";
+            data = /incbin/("/boot/initrd.img-6.12.41+deb13-sonic-arm64");
+            type = "ramdisk";
+            arch = "arm64";
+            os = "linux";
+            compression = "none";
             hash@1 {
                 algo = "sha1";
             };
@@ -120,6 +148,18 @@
                 algo = "sha1";
             };
         };
+        /* Vendor dtb, shipped via sonic-device-data (installed before mkimage) */
+        fdt_ecs5550-30x {
+            description = "Flattened Device Tree blob for Accton ECS5550-30X";
+            data = /incbin/("/usr/share/sonic/device/arm64-accton_ecs5550_30x-r0/ecs5550-30x.dtb");
+            type = "flat_dt";
+            arch = "arm64";
+            compression = "none";
+            load = <0x5400000>;
+            hash@1 {
+                algo = "sha1";
+            };
+        };
     };
 
     /* From Uboot env fit_conf_name=#conf_cn9131 */
@@ -148,6 +188,17 @@
             kernel = "kernel_cn9131";
             ramdisk = "ramdisk_cn9131";
             fdt = "fdt_cn9131";
+            hash@1 {
+                algo = "sha1";
+            };
+        };
+        /* Same name as the vendor FIT, so sonic_image_2 (which reuses
+         * $fit_conf_name) can still boot the previous vendor image. */
+        conf_ecs5550-30x {
+            description = "Boot Linux kernel with FDT blob + ramdisk for Accton ECS5550-30X";
+            kernel = "kernel_aldrin2";
+            ramdisk = "ramdisk_aldrin2";
+            fdt = "fdt_ecs5550-30x";
             hash@1 {
                 algo = "sha1";
             };

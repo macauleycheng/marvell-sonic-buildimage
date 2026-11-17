@@ -44,6 +44,11 @@ $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
 	# Build source and Debian packages
 ifeq ($(CROSS_BUILD_ENVIRON), y)
 	dpkg-buildpackage -rfakeroot -b -us -uc -a$(CONFIGURED_ARCH) -Pcross,nocheck -j$(SONIC_CONFIG_MAKE_JOBS) --admindir $(SONIC_DPKG_ADMINDIR)
+else ifeq ($(MULTIARCH_QEMU_ENVIRON), y)
+	# xlate-test.py needs nf_tables netlink, which QEMU user-mode emulation
+	# does not support ("Failed to initialize nft: Protocol not supported",
+	# then qemu segfault). Skip the test suite; the build itself is unaffected.
+	DEB_BUILD_OPTIONS="$(DEB_BUILD_OPTIONS) nocheck" dpkg-buildpackage -rfakeroot -b -us -uc -j$(SONIC_CONFIG_MAKE_JOBS) --admindir $(SONIC_DPKG_ADMINDIR)
 else
 	dpkg-buildpackage -rfakeroot -b -us -uc -j$(SONIC_CONFIG_MAKE_JOBS) --admindir $(SONIC_DPKG_ADMINDIR)
 endif
